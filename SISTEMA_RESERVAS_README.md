@@ -264,3 +264,139 @@ El sistema genera logs automáticos para:
 - [ ] Integración con sistema de pagos
 - [ ] Reservas por lotes para carritos de compras
 - [ ] API de webhooks para notificaciones externas
+
+## 📧 **NUEVA FUNCIONALIDAD: CORREO DE CONFIRMACIÓN**
+
+### ✅ IMPLEMENTADO EXITOSAMENTE
+
+Tu backend ahora **envía automáticamente un correo electrónico** al usuario cuando confirma una reserva de producto.
+
+### 🔄 **Flujo con Correo:**
+
+1. **Usuario Confirma Reserva**
+   ```javascript
+   PUT /productos/reserva/:reservaId/confirmar
+   Authorization: Bearer jwt_token
+   ```
+
+2. **Backend Procesa y Envía Correo**
+   - ✅ Valida la reserva
+   - ✅ Cambia estado a 'confirmada'
+   - ✅ Obtiene datos del usuario y producto
+   - ✅ **Envía correo automático con detalles**
+   - ✅ Registra auditoría
+   - ✅ Responde al cliente
+
+3. **Usuario Recibe Correo Profesional**
+
+### 📧 **Contenido del Correo:**
+
+#### **Información Incluida:**
+- 🆔 **Número de reserva** (para referencia en tienda)
+- 🛒 **Producto reservado** (nombre y cantidad)
+- 💰 **Total a pagar** (precio calculado automáticamente)
+- ⏰ **Fecha límite** para retirar (con countdown visual)
+- 📍 **Información de la tienda** (dirección, horarios, contacto)
+- 📋 **Instrucciones paso a paso** para retirar
+
+#### **Diseño Profesional:**
+- ✅ HTML responsivo con CSS inline
+- ✅ Colores llamativos y diseño moderno
+- ✅ Iconos emoji para mejor visualización
+- ✅ Secciones bien organizadas
+- ✅ Versión texto plano como fallback
+
+### 🗂️ **Archivos Implementados:**
+
+#### 1. `middleware/emailReserva.js`
+```javascript
+// Función principal
+enviarCorreoConfirmacionReserva(datos)
+
+// Parámetros:
+{
+  emailUsuario: string,
+  nombreUsuario: string,
+  nombreProducto: string,
+  cantidadReservada: number,
+  fechaExpiracion: Date,
+  reservaId: number,
+  precioTotal: number
+}
+```
+
+#### 2. `controllers/productosController.js` (Modificado)
+- ✅ Importa función de envío de correo
+- ✅ Obtiene datos del usuario y producto
+- ✅ Calcula precio total automáticamente
+- ✅ Envía correo después de confirmar reserva
+- ✅ Maneja errores sin afectar la confirmación
+
+### 📱 **Nueva Respuesta del Endpoint:**
+
+```json
+{
+  "message": "Reserva confirmada exitosamente. Se ha enviado un correo con los detalles.",
+  "reserva": {
+    "reserva_id": 123,
+    "estado": "confirmada",
+    "fecha_confirmacion": "2025-07-01T19:48:04.000Z"
+  }
+}
+```
+
+### 🧪 **Tests Ejecutados:**
+
+✅ **test_email_reserva.js** - Envío básico de correo
+✅ **test_confirmacion_completa.js** - Flujo completo simulado
+
+### ⚙️ **Configuración Requerida:**
+
+#### Variables de entorno (.env):
+```env
+EMAIL_USER=tu_email@gmail.com
+EMAIL_PASSWORD=tu_app_password
+```
+
+#### Para Gmail:
+1. Habilitar 2FA en tu cuenta Google
+2. Generar "App Password" específica
+3. Usar la App Password en EMAIL_PASSWORD
+
+### 🎯 **Casos de Uso Cubiertos:**
+
+1. ✅ **Reserva confirmada exitosamente** → Envía correo con todos los detalles
+2. ✅ **Error al enviar correo** → La confirmación sigue funcionando (no crítico)
+3. ✅ **Datos faltantes** → Maneja errores gracefully
+4. ✅ **Cálculo automático** → Precio total basado en cantidad × precio unitario
+
+### 🚀 **¿Cómo Usar desde el Frontend?**
+
+```javascript
+// Confirmar reserva
+fetch('/productos/reserva/123/confirmar', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  }
+})
+.then(response => response.json())
+.then(data => {
+  if (data.message.includes('enviado un correo')) {
+    // El usuario recibirá correo automáticamente
+    showSuccess('Reserva confirmada. Revisa tu correo.');
+  }
+});
+```
+
+### 🎉 **RESULTADO FINAL:**
+
+**Tu sistema de reservas ahora es completamente profesional:**
+- ✅ Reserva temporal de productos
+- ✅ Confirmación con correo automático
+- ✅ Información completa para el cliente
+- ✅ Proceso claro para retirar en tienda
+- ✅ Manejo robusto de errores
+
+**¡Los usuarios ahora reciben toda la información necesaria por correo cuando confirman su reserva!**

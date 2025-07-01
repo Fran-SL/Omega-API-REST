@@ -2,6 +2,8 @@ const path = require('path');
 const Producto = require('../models/productoModel');
 const Reserva = require('../models/reservaSimple');
 const auditoriaController = require('./auditoriaController');
+const { enviarCorreoConfirmacionReserva } = require('../middleware/emailReserva');
+const usuariosModel = require('../models/usuariosModel');
 
 exports.obtenerProductos = async (req, res) => {
   try {
@@ -186,8 +188,51 @@ exports.confirmarReserva = async (req, res) => {
     if (!usuarioId) {
       return res.status(401).json({ message: 'Usuario no autenticado' });
     }
-    
+
     const reservaConfirmada = await Reserva.confirmarReserva(reservaId, usuarioId);
+    
+    // Obtener información del usuario y producto para el correo
+    console.log('📧 Preparando envío de correo de confirmación...');
+    
+    try {
+      // Obtener datos del usuario
+      const usuario = await usuariosModel.obtenerUsuarioPorId(usuarioId);
+      
+      // Obtener datos del producto usando el producto_id de la reserva
+      const producto = await Producto.findByPk(reservaConfirmada.producto_id);
+      
+      if (usuario && producto) {
+        const nombreCompleto = `${usuario.nombre} ${usuario.apellido_paterno} ${usuario.apellido_materno || ''}`.trim();
+        const precioTotal = producto.precio_producto * reservaConfirmada.cantidad_reservada;
+        
+        // Datos para el correo
+        const datosCorreo = {
+          emailUsuario: usuario.correo_electronico,
+          nombreUsuario: nombreCompleto,
+          nombreProducto: producto.nombre_producto,
+          cantidadReservada: reservaConfirmada.cantidad_reservada,
+          fechaExpiracion: reservaConfirmada.fecha_expiracion,
+          reservaId: reservaConfirmada.reserva_id,
+          precioTotal: precioTotal
+        };
+
+        console.log('📧 Enviando correo de confirmación a:', usuario.correo_electronico);
+        
+        // Enviar correo de confirmación
+        const resultadoCorreo = await enviarCorreoConfirmacionReserva(datosCorreo);
+        
+        if (resultadoCorreo.success) {
+          console.log('✅ Correo de confirmación enviado exitosamente');
+        } else {
+          console.log('⚠️ Error al enviar correo (no crítico):', resultadoCorreo.error);
+        }
+      } else {
+        console.log('⚠️ No se pudieron obtener datos del usuario o producto para el correo');
+      }
+      
+    } catch (emailError) {
+      console.error('⚠️ Error al enviar correo de confirmación (no crítico):', emailError.message);
+    }
     
     // Registrar evento de auditoría
     try {
@@ -201,7 +246,7 @@ exports.confirmarReserva = async (req, res) => {
     }
     
     res.json({
-      message: 'Reserva confirmada exitosamente',
+      message: 'Reserva confirmada exitosamente. Se ha enviado un correo con los detalles.',
       reserva: {
         reserva_id: reservaConfirmada.reserva_id,
         estado: reservaConfirmada.estado_reserva,
